@@ -1,0 +1,22 @@
+{
+  "credentials": {
+    "test":
+    {
+      "name" : "alphaai-testing-api",
+      "API_Key": "rVMbt8yn5EqfkV42ZE",
+      "API_Secret": "jF1jSpdE8wCPn3yoAm73wjT9AvFXjL4eC0BV"
+    },
+    "production":
+    {
+      "API_Key": "",
+      "API_Secret": ""
+    },
+    "demo" :
+    {
+      "uid" : "75330768",
+      "name" : "Demo_Testing",
+      "API_Key": "6TzoOeOuyIDiJN9cOu",
+      "API_Secret": "JbTE9Z5OFFyxcw1mzqf6hLIpmGgt8dONmlSE"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "demo" : {
+    "Market": {
+            "Trade": {
+                "Place_Order": "/v5/order/create",
+                "Amend_Order": "/v5/order/amend",
+                "Cancel_Order": "/v5/order/cancel",
+                "Get_Open_Orders": "/v5/order/realtime",
+                "Cancel_All_Orders": "/v5/order/cancel-all",
+                "Get_Trade_History": "/v5/execution/list",
+                "Batch_Place_Order": "/v5/order/create-batch",
+                "Batch_Amend_Order": "/v5/order/amend-batch",
+                "Batch_Cancel_Order": "/v5/order/cancel-batch"
+            },
+            "Position": {
+                "Get_Position_Info": "/v5/position/list",
+                "Set_Leverage": "/v5/position/set-leverage",
+                "Switch_Position_Mode": "/v5/position/switch-mode",
+                "Set_Trading_Stop": "/v5/position/trading-stop",
+                "Set_Auto_Add_Margin": "/v5/position/set-auto-add-margin",
+                "Add_Or_Reduce_Margin": "/v5/position/add-margin",
+                "Get_Closed_PnL": "/v5/position/closed-pnl"
+            },
+            "Account": {
+                "Get_Wallet_Balance": "/v5/account/wallet-balance",
+                "Get_Borrow_History": "/v5/account/borrow-history",
+                "Set_Collateral_Coin": "/v5/account/set-collateral-switch",
+                "Get_Collateral_Info": "/v5/account/collateral-info",
+                "Get_Coin_Greeks": "/v5/asset/coin-greeks",
+                "Get_Account_Info": "/v5/account/info",
+                "Set_Margin_Mode": "/v5/account/set-margin-mode",
+                "Set_Spot_Hedging": "/v5/account/set-hedging-mode"
+            },
+            "Asset": {
+                "Get_Delivery_Record": "/v5/asset/delivery-record",
+                "Get_USDC_Session_Settlement": "/v5/asset/settlement-record"
+            },
+            "Spot_Margin_Trade": {
+                "Toggle_Margin_Trade": "/v5/spot-margin-trade/switch-mode",
+                "Set_Leverage": "/v5/spot-margin-trade/set-leverage",
+                "Get_Status_And_Leverage": "/v5/spot-margin-uta/status"
+            }
+        }
+    },
+  "production": {
+    "Market": {
+        "Get_Instruments_Info": "/v5/market/instruments-info",
+        "Get_Orderbook": "/v5/market/orderbook",
+        "Get_Tickers": "/v5/market/tickers"
+        }
+    }
+}

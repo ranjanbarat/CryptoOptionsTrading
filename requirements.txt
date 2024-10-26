@@ -1,0 +1,19 @@
+# Python Basic Requirements
+# pip
+# setuptools
+# wheel
+
+numpy
+pandas
+# websockets
+
+httpx
+pytz
+
+# ByBit Official Python Packedge
+# pybit
+
+# ## ADD TO LOCAL REQUIREMENTS
+# matplotlib
+# jupyter
+# pytest
