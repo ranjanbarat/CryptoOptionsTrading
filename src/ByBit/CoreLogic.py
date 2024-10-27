@@ -196,7 +196,6 @@ class CoreLogic(object):
         # Compute & Execute Delta Hedging
         await self.compute_delta_hedging()
 
-
     async def compute_delta_hedging(self):
 
         excess_columns = ["symbol", "avgPrice", "delta", "theta", "positionValue", "unrealisedPnl", "size",
@@ -212,27 +211,9 @@ class CoreLogic(object):
             self.expiry_df.drop_duplicates("expiry", inplace=True, ignore_index=True)
             # Compute the Perpectual Futures Requirements, Total of All Expiries
             # Compute the Total Hedging Requirements for the Open Options Positions
-            # temp_count = sum(self.expiry_df.loc[self.expiry_df.hedging_required == True, "PerpFutureQty"])
-            """
-            for i in range(len(self.expiry_df)):
-                # if self.expiry_df.iloc[i]["hedging_required"] == True
-                if self.expiry_df.iloc[i]["hedging_required"]:
-                    total_perpFutures = round(total_perpFutures, 6) + round(self.expiry_df.iloc[i]["PerpFutureQty"], 6)
-                else:
-                    pass
-                temp_count = round(temp_count, 6) + round(self.expiry_df.iloc[i]["PerpFutureQty"], 6)
-                print(f"i : {i} , temp_count : {temp_count}")
-           
-            # Check if the Delta is Computed Correctly
-            if round(sum(self.expiry_df.PerpFutureQty), 6) ==  temp_count:
-                print(f"Expiry Delta is Computed Correctly : {temp_count}",
-                      f"Actual Delta in DataFrame : {round(sum(self.expiry_df.PerpFutureQty), 6)}")
-            else:
-                print(f"Attention !!! Expiry Delta is Computed Incorrectly, Expiry Delta :  {temp_count}",
-                      f"Actual Delta in DataFrame : {round(sum(self.expiry_df.PerpFutureQty), 6)}")
-            """
             self.total_perpFutures = round(sum(
                 self.expiry_df.loc[self.expiry_df.hedging_required == True, "PerpFutureQty"]), 6)
+            print(f"Totol Perpectual Futures Requirements : {self.total_perpFutures}")
 
         except Exception as e:
             print(f"Error Occoured While computing the Expiry DataFrame, Error Details : {e}")
@@ -241,60 +222,69 @@ class CoreLogic(object):
         ## Checking the Risk Magnitude for Daily Expiry
         try:
             daily_delta_risk = round(sum(self.expiry_df[self.expiry_df.expiry_type == "daily"].PerpFutureQty), 6)
-            daily_delta_risk_magnitude = self.delta_risk_multiplier * self.daily_delta_limit
+            daily_delta_risk_magnitude = self.delta_risk_multiplier * self.daily_delta_limit * self.quantity
 
             if daily_delta_risk > daily_delta_risk_magnitude:
-                print(f"Attention !!!! : Daily Delta Risk Paramater Exceeded : {daily_delta_risk_magnitude}, "
-                      f"Risk Magnitude : {daily_delta_risk}")
                 self.total_delta_risk_magnitude = self.total_delta_risk_magnitude + daily_delta_risk
+                print(f"Attention !!!! : Daily Delta Risk Paramater Exceeded : {daily_delta_risk_magnitude}, "
+                      f"Risk Magnitude : {daily_delta_risk}, Total Risk Magnitude : {self.total_delta_risk_magnitude}")
             else:
                 print(f"Daily Delta Risk Paramater is within Limit : {daily_delta_risk} ",
-                      f"Risk Magnitude : {daily_delta_risk_magnitude}")
+                      f"Risk Magnitude : {daily_delta_risk_magnitude}, "
+                      f"Total Risk Magnitude : {self.total_delta_risk_magnitude}")
         except Exception as e:
             print(f"Error Occoured While Computing the Daily Delta Risk magnitude, Error Details : {e}")
 
         ## Checking the Risk Magnitude for Weekly Expiry
         try:
             weekly_delta_risk = round(sum(self.expiry_df[self.expiry_df.expiry_type == "weekly"].PerpFutureQty), 6)
-            weekly_delta_risk_magnitude = self.delta_risk_multiplier * self.weekly_delta_limit
+            weekly_delta_risk_magnitude = self.delta_risk_multiplier * self.weekly_delta_limit * self.quantity
 
             if weekly_delta_risk > weekly_delta_risk_magnitude:
-                print(f"Attention !!!! : Weekly Delta Risk Paramater Exceeded : {weekly_delta_risk}, "
-                      f"Risk Magnitude : {weekly_delta_risk_magnitude}")
                 self.total_delta_risk_magnitude = self.total_delta_risk_magnitude + weekly_delta_risk
+
+                print(f"Attention !!!! : Weekly Delta Risk Paramater Exceeded : {weekly_delta_risk}, "
+                      f"Risk Magnitude : {weekly_delta_risk_magnitude}, "
+                      f"Total Risk Magnitude : {self.total_delta_risk_magnitude}")
             else:
                 print(f"Weekly Delta Risk Paramater is within Limit : {weekly_delta_risk} ",
-                      f"Risk Magnitude : {weekly_delta_risk_magnitude}")
+                      f"Risk Magnitude : {weekly_delta_risk_magnitude}, "
+                      f"Total Risk Magnitude : {self.total_delta_risk_magnitude}")
         except Exception as e:
             print(f"Error Occoured While Computing the Weekly Delta Risk magnitude, Error Details : {e}")
 
         ## Checking the Risk Magnitude for Monthly Expiry
         try :
             monthly_delta_risk = round(sum(self.expiry_df[self.expiry_df.expiry_type == "monthly"].PerpFutureQty), 6)
-            monthly_delta_risk_magnitude = self.delta_risk_multiplier * self.monthly_delta_limit
+            monthly_delta_risk_magnitude = self.delta_risk_multiplier * self.monthly_delta_limit * self.quantity
 
             if monthly_delta_risk > monthly_delta_risk_magnitude:
-                print(f"Attention !!!! : Monthly Delta Risk Paramater Exceeded : {monthly_delta_risk}, "
-                      f"Risk Magnitude : {monthly_delta_risk_magnitude}")
                 self.total_delta_risk_magnitude = self.total_delta_risk_magnitude + monthly_delta_risk
+
+                print(f"Attention !!!! : Monthly Delta Risk Paramater Exceeded : {monthly_delta_risk}, "
+                      f"Risk Magnitude : {monthly_delta_risk_magnitude}, "
+                      f"Total Risk Magnitude : {self.total_delta_risk_magnitude}")
             else:
                 print(f"Monthly Delta Risk Paramater is within Limit : {monthly_delta_risk} ",
-                      f"Risk Magnitude : {monthly_delta_risk_magnitude}")
+                      f"Risk Magnitude : {monthly_delta_risk_magnitude}, "
+                      f"Total Risk Magnitude : {self.total_delta_risk_magnitude}")
         except Exception as e:
             print(f"Error Occoured While Computing the Monthly Delta Risk magnitude, Error Details : {e}")
 
         ## Checking the Risk Magnitude for Quarterly Expiry
         try:
             quarterly_delta_risk = round(sum(self.expiry_df[self.expiry_df.expiry_type == "quarterly"].PerpFutureQty), 6)
-            quarterly_delta_risk_magnitude = self.delta_risk_multiplier * self.quarterly_delta_limit
+            quarterly_delta_risk_magnitude = self.delta_risk_multiplier * self.quarterly_delta_limit * self.quantity
 
             if quarterly_delta_risk > quarterly_delta_risk_magnitude:
-                print(f"Attention !!!! : Quarterly Delta Risk Paramater Exceeded : {quarterly_delta_risk}, "
-                      f"Risk Magnitude : {quarterly_delta_risk_magnitude}")
                 self.total_delta_risk_magnitude = self.total_delta_risk_magnitude + quarterly_delta_risk
+                print(f"Attention !!!! : Quarterly Delta Risk Paramater Exceeded : {quarterly_delta_risk}, "
+                      f"Risk Magnitude : {quarterly_delta_risk_magnitude}, "
+                      f"Total Risk Magnitude : {self.total_delta_risk_magnitude}")
             else:
                 print(f"Quarterly Delta Risk Paramater is within Limit : {quarterly_delta_risk} ",
-                      f"Risk Magnitude : {quarterly_delta_risk_magnitude}")
+                      f"Risk Magnitude : {quarterly_delta_risk_magnitude}, "
+                      f"Total Risk Magnitude : {self.total_delta_risk_magnitude}")
         except Exception as e:
             print(f"Error Occoured While Computing the Quarterly Delta Risk magnitude, Error Details : {e}")
 
@@ -374,11 +364,11 @@ class CoreLogic(object):
                       f"Expiry Delta {abs(round(self.position_df.loc[i, "expiry_delta"], 6))}, "
                       f"Expiry Date : {self.position_df.loc[i, "expiry"]}")
                 if abs(round(self.position_df.loc[i, "delta_hedging"], 6)) > abs(round(self.position_df.loc[i, "expiry_delta"], 6)):
-                    print(f"Hedging Required !!! ")
+                    print(f"Attention !! Hedging Required !!! for Expiry Position {self.position_df.loc[i, "expiry"]}")
                     self.position_df.loc[i, "hedging_required"] = True
                     self.position_df.loc[i, "PerpFutureQty"] = self.position_df.loc[i, "delta_hedging"]
                 else:
-                    print(f"Hedging Not Required !!! ")
+                    print(f"Hedging Not Required, for Expiry Position {self.position_df.loc[i, "expiry"]} ")
                     self.position_df.loc[i, "hedging_required"] = False
                     self.position_df.loc[i, "PerpFutureQty"] = self.position_df.loc[i, "delta_hedging"]
         except Exception as e:
@@ -407,6 +397,8 @@ class CoreLogic(object):
                               position_direction: str | None = None,
                               quantity: np.float64 | None = None):
 
+        # new_options_position:bool = False
+
         call, put = await recommend_option_position(delta_value = self.delta_value,
                                                     min_bid_price = self.min_bid_price,
                                                     initial_mark_price_diff = self.initial_mark_price_diff,
@@ -422,8 +414,12 @@ class CoreLogic(object):
             await self.ByBitAPI.create_Option_Order(direction=position_direction,
                                                     symbol=put.iloc[0]["symbol"],
                                                     quantity=quantity)
+            # new_options_position = True
         else:
             print(f"Cannot Place Orders for Option Chain as NO Matching Criteria Exist")
+            # new_options_position = False
+
+        # return new_options_position
 
     async def _process_daily_expiry(self):
         # Daily: Current Daily Position
