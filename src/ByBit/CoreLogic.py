@@ -18,11 +18,13 @@ DELTA HEDGING:
     if Yes, then Ignore, If Not, then Re-Balance the Delta using USDC Perpetual Futures
     Compute the Required USDC Futures Position to Balance the Delta & Initiate the Order Processing for the Same
 """
-import pandas as pd
-from .ByBitOptionData import ByBitOptionData
-from .ByBitAPI import ByBitAPI
 import numpy as np
+import pandas as pd
+
+from .ByBitAPI import ByBitAPI
+from .ByBitOptionData import ByBitOptionData
 from .RecommendOptionPosition import recommend_option_position
+
 
 class CoreLogic(object):
     """
@@ -162,6 +164,7 @@ class CoreLogic(object):
         self.PerpFutures_position:float = 0.0
         self.total_perpFutures:float = 0.0
         self.total_delta_risk_magnitude:float = 0.0
+        self.required_PerfFutures_position: float = 0.0
 
     async def core_logic_computation(self):
         ByBit = ByBitOptionData(api_url=self.api_url, api_endpoint=self.api_endpoint, api_parameters=self.api_params)
@@ -307,34 +310,131 @@ class CoreLogic(object):
         except Exception as e:
             print(f"Error in Fetcting the Perpectual Futures Position Error Details : {e}")
 
-        # Take the Perpectual Futures Positions Based on the Computations
+        # Compute the Perpectual Future Position Requirements AND Take the Required Position
         try:
-
             if self.total_perpFutures >= self.total_delta_risk_magnitude:
                 # Take the Perpectual Futuers Position
-                required_PerfFutures_position = self.total_perpFutures - self.PerpFutures_position
-                required_PerfFutures_position = round(required_PerfFutures_position, 3)
-                if required_PerfFutures_position > 0.0:
-                    await self.ByBitAPI.create_PerpFutures_Order(direction="BUY",
-                                                                 quantity=abs(required_PerfFutures_position))
-                elif required_PerfFutures_position < 0.0:
-                    await self.ByBitAPI.create_PerpFutures_Order(direction="SELL",
-                                                                 quantity=abs(required_PerfFutures_position))
+                self.required_PerfFutures_position = round(self.total_perpFutures, 3)
 
-            elif self.total_delta_risk_magnitude >= self.total_perpFutures:
+            elif self.total_perpFutures < self.total_delta_risk_magnitude:
                 # Take the Perpectual Futuers Position
-                required_PerfFutures_position = self.total_delta_risk_magnitude - self.PerpFutures_position
-                required_PerfFutures_position = round(required_PerfFutures_position, 3)
+                self.required_PerfFutures_position = round(self.total_delta_risk_magnitude, 3)
 
-                if required_PerfFutures_position > 0.0:
-                    await self.ByBitAPI.create_PerpFutures_Order(direction="BUY",
-                                                                 quantity=abs(required_PerfFutures_position))
-                elif required_PerfFutures_position < 0.0:
-                    await self.ByBitAPI.create_PerpFutures_Order(direction="SELL",
-                                                                 quantity=abs(required_PerfFutures_position))
+            # Take the Perpectual Futures Positions Based on the Computations
+            await self._check_PerpFutures_Quantity_and_take_PerpFutures_position(
+                PerpFut_Position=self.PerpFutures_position,
+                PerpFut_Requirement=self.required_PerfFutures_position)
+
         except Exception as e:
             print(f"Error in Computing & {self.baseCoin} Taking Perpectual Futuers Position  the Perpectual Futures "
                   f"Error Details : {e}")
+
+    async def _check_PerpFutures_Quantity_and_take_PerpFutures_position(self, PerpFut_Position,
+                                                                        PerpFut_Requirement):
+
+        adjustment_quantity = 0.0
+        if PerpFut_Position == 0.0:
+
+            if PerpFut_Requirement == 0:
+                print(f"No PerpFuture Position is Required : {PerpFut_Requirement}, No Order Processing is Required")
+
+            elif PerpFut_Requirement > 0:
+                print(f"Placing a 'BUY' Order for PerpFuture with following Quantity : {PerpFut_Requirement}")
+                await self.ByBitAPI.create_PerpFutures_Order(direction="BUY", quantity=abs(PerpFut_Requirement))
+
+            elif PerpFut_Requirement < 0:
+                print(f"Placing a 'SELL' Order for PerpFuture with following Quantity : {PerpFut_Requirement}")
+                await self.ByBitAPI.create_PerpFutures_Order(direction="SELL", quantity=abs(PerpFut_Requirement))
+
+        elif PerpFut_Position > 0.0:
+
+            if PerpFut_Requirement == 0:
+                adjustment_quantity = round((PerpFut_Requirement - PerpFut_Position), 3)
+
+                print(
+                    f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                    f"So Futures Adjustment 'SELL' Quantity is : {adjustment_quantity}")
+                await self.ByBitAPI.create_PerpFutures_Order(direction="SELL", quantity=abs(adjustment_quantity))
+
+            elif PerpFut_Requirement > 0:
+
+                if PerpFut_Position > PerpFut_Requirement:
+                    adjustment_quantity = -round((PerpFut_Position - PerpFut_Requirement), 3)
+                elif PerpFut_Position < PerpFut_Requirement:
+                    adjustment_quantity = round((PerpFut_Requirement - PerpFut_Position), 3)
+
+                if adjustment_quantity < 0:
+
+                    print(
+                        f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                        f"So Futures Adjustment 'SELL' Quantity is : {adjustment_quantity}")
+
+                    await self.ByBitAPI.create_PerpFutures_Order(direction="SELL", quantity=abs(adjustment_quantity))
+
+                else:
+
+                    print(
+                        f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                        f"So Futures Adjustment 'BUY' Quantity is : {adjustment_quantity}")
+
+                    await self.ByBitAPI.create_PerpFutures_Order(direction="BUY", quantity=abs(adjustment_quantity))
+
+
+            elif PerpFut_Requirement < 0:
+                adjustment_quantity = round((-PerpFut_Position + PerpFut_Requirement), 3)
+
+                if adjustment_quantity < 0:
+                    print(
+                        f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                        f"So Futures Adjustment 'SELL' Quantity is : {adjustment_quantity}")
+                    await self.ByBitAPI.create_PerpFutures_Order(direction="SELL", quantity=abs(adjustment_quantity))
+
+                else:
+                    print(
+                        f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                        f"So Futures Adjustment 'BUY' Quantity is : {adjustment_quantity}")
+                    await self.ByBitAPI.create_PerpFutures_Order(direction="BUY", quantity=abs(adjustment_quantity))
+
+        elif PerpFut_Position < 0.0:
+
+            if PerpFut_Requirement == 0:
+                adjustment_quantity = round((PerpFut_Requirement - PerpFut_Position), 3)
+
+                print(
+                    f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                    f"So Futures Adjustment 'BUY' Quantity is : {adjustment_quantity}")
+                await self.ByBitAPI.create_PerpFutures_Order(direction="BUY", quantity=abs(adjustment_quantity))
+
+            elif PerpFut_Requirement > 0:
+                adjustment_quantity = round((-PerpFut_Position + PerpFut_Requirement), 3)
+
+                print(
+                    f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                    f"So Futures Adjustment 'BUY' Quantity is : {adjustment_quantity}")
+
+                await self.ByBitAPI.create_PerpFutures_Order(direction="BUY", quantity=abs(adjustment_quantity))
+
+
+            elif PerpFut_Requirement < 0:
+                if PerpFut_Position > PerpFut_Requirement:
+                    adjustment_quantity = -round((PerpFut_Position - PerpFut_Requirement), 3)
+                elif PerpFut_Position < PerpFut_Requirement:
+                    adjustment_quantity = round((PerpFut_Requirement - PerpFut_Position), 3)
+
+                if adjustment_quantity < 0:
+                    print(
+                        f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                        f"So Futures Adjustment 'SELL' Quantity is : {adjustment_quantity}")
+                    await self.ByBitAPI.create_PerpFutures_Order(direction="SELL", quantity=abs(adjustment_quantity))
+
+                else:
+                    print(
+                        f"Since Existing PerpFuture Position Exist : {PerpFut_Position}, and PerpFuture Requirements : {PerpFut_Requirement},"
+                        f"So Futures Adjustment 'BUY' Quantity is : {adjustment_quantity}")
+                    await self.ByBitAPI.create_PerpFutures_Order(direction="BUY", quantity=abs(adjustment_quantity))
+
+        return adjustment_quantity
+
 
     async def set_expiry_delta_in_dictionary(self):
         try :
