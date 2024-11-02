@@ -2,7 +2,7 @@
 
 https://www.python-httpx.org/api/#asyncclient
 
-class httpx.AsyncClient(*, auth=None, params=None, headers=None, cookies=None, verify=True, cert=None, http1=True,
+Class httpx.AsyncClient(*, auth=None, params=None, headers=None, cookies=None, verify=True, cert=None, http1=True,
 http2=False, proxy=None, proxies=None, mounts=None, timeout=Timeout(timeout=5.0), follow_redirects=False,
 limits=Limits(max_connections=100, max_keepalive_connections=20, keepalive_expiry=5.0), max_redirects=20,
 event_hooks=None, base_url='', transport=None, app=None, trust_env=True, default_encoding='utf-8')
@@ -26,25 +26,40 @@ Algorithm Flow:
         Raise Exception Notification if the Delta breaches the threshold
 
 """
-import uuid
-import httpx
 import hashlib
 import hmac
-
-import time
-from datetime import datetime
 import json
+import time
+import uuid
+from datetime import datetime
 
-import pandas as pd
+import httpx
 import numpy as np
+import pandas as pd
 
 
 async def _get_time_stamp():
+    """
+        Asynchronously retrieves the current time stamp.
+
+        This method has calculated the current time in milliseconds since the Unix epoch and returns it as a string.
+
+        Returns:
+            str: The current time stamp in milliseconds.
+    """
     time_stamp: str = str(int(time.time() * 10 ** 3))
     return time_stamp
 
 
 class ByBitAPI:
+    """
+    Args:
+        default_quantity (float, optional): Default Short Quantity for Option Shorting
+        api_url (str, optional): API URL for the Option Exchange
+        api_key (str, optional): API Keys for the Exchange
+        api_secret (str, optional): API Secret for the Option Exchange
+        baseCoin (str, optional): Must be "BTC" or "ETH" or "XRP" or "SOL"
+    """
     def __init__(self, default_quantity: float | None = None,
                  api_url: str | None = None,
                  api_key: str | None = None,
@@ -53,12 +68,19 @@ class ByBitAPI:
                  settleCoin: str | None = None):
 
         """
-        :parameter default_quantity :type : float : Default Short Quantity for Option Shorting
-        :parameter api_url: :type : String : API URL for the Option Exchange
-        :parameter api_key: :type : String :API Keys for the Exchange
-        :parameter api_secret :type : String :API Secret for the Option Exchange
-        :parameter baseCoin: :type : String : Must be "BTC" or "ETH" or "XRP" or "SOL"
+        Args:
+            default_quantity: The default quantity for orders, expressed as a float.
+            It is converted to a string for parameter compatibility.
+            api_url: The base URL for the API endpoint.
+            api_key: The API key used for authentication.
+            api_secret: The API secret used for authentication.
+            baseCoin: The base cryptocurrency (e.g., BTC, ETH, XRP, SOL) for which perpetual futures are traded.
+            settleCoin: The cryptocurrency used for settlement of trades.
         """
+        self.json_option_position_params = None
+        self.option_position_params = None
+        self.json_option_position_params = None
+        self.option_position_params = None
         self.perpfutures_position_info_json = None
         self.baseCoin:str | None  = None
         self.perpetual_future: str | None = None
@@ -135,9 +157,14 @@ class ByBitAPI:
 
     async def _generateSignature(self, params, time_stamp):
         """
-        :param params: Its API Parameter in Dict → JSON → String Format
-        :param time_stamp: Its System generated Time module
-        :return: ByBit API Signature
+        Generates an HMAC SHA256 signature using the provided parameters and timestamp.
+
+        Args:
+            params: A dictionary of request parameters to include in the signature.
+            time_stamp: A timestamp to be included in the signature computation.
+
+        Returns:
+            A hexadecimal string representing the generated signature.
         """
         param_str = str(time_stamp) + self.API_Key + self.recv_window + str(params)
         print(f"Parameter String is : {param_str}\n")
@@ -150,10 +177,16 @@ class ByBitAPI:
                                   symbol: str | None = None,
                                   quantity: float = 1.00):
         """
-        :param direction: It Can either "BUY" or "SELL", No Other parameter is Allowed
-        :param symbol: Its Option Symbol against which we will place the Order
-        :param quantity: Its Float with a minimum value of 0.01
-        :return:
+        Creates an order for an option trade with specified parameters.
+
+        Args:
+            direction: The direction of the order, either "SELL" or "BUY".
+            Defaults to "SELL".
+            symbol: The symbol for the option to be traded.
+            Can be None.
+            quantity: The quantity for the order.
+            Defaults to 1.00.
+
         """
         order_side = None
         orderLinkId = uuid.uuid4().hex
@@ -210,9 +243,14 @@ class ByBitAPI:
 
     async def create_PerpFutures_Order(self, direction: str, quantity: float):
         """
-        :param direction: It Can either "BUY" or "SELL"
-        :param quantity: Its Float with a minimum value of 0.001
-        :return: Order ID
+        Creates a perpetual futures order and submits it to the API.
+
+        Args:
+            direction: The direction of the order, either "BUY" or "SELL".
+            quantity: The quantity of the perpetual futures to order.
+
+        Returns:
+            None
         """
         order_side = None
         orderLinkId = uuid.uuid4().hex
@@ -268,6 +306,20 @@ class ByBitAPI:
             print(f"JSON Output : {r.json()} \n")
 
     async def get_PerpFutures_Position(self):
+        """
+        Fetch the perpetual futures position information.
+
+        This asynchronous method constructs the necessary parameters and headers for
+        the API request to retrieve the user's perpetual futures position information.
+        The request is sent to the specified endpoint using an `httpx.AsyncClient` and
+        the response is returned in JSON format.
+
+        Returns:
+            Response (json): The JSON response containing the perpetual futures position information.
+
+        Raises:
+            Exception: If there's an error in fetching the position info.
+        """
         perpfutures_params = (f"category={self.category["linear"]}" +
                               f"&baseCoin={self.baseCoin}" +
                               f"&settleCoin={self.settleCoin}")
@@ -307,6 +359,18 @@ class ByBitAPI:
         return self.perpfutures_position_info_json
 
     async def format_perpfutures(self):
+        """
+        Formats perpetual futures position information obtained from a JSON response.
+
+        The method processes data from `self.perpfutures_position_info_json` by:
+        1. Normalizing the JSON data into a pandas DataFrame.
+        2. Dropping unnecessary columns related to position details.
+        3. Ensuring that specific columns have the correct data types.
+        4. Converting timestamp columns from milliseconds to datetime objects.
+
+        Returns:
+            DataFrame: A pandas DataFrame containing formatted perpetual futures position data.
+        """
         PerFutures_df = pd.json_normalize(data=self.perpfutures_position_info_json.json()["result"]["list"])
         positions_labels = ["leverage", "autoAddMargin", "riskLimitValue", "takeProfit", "isReduceOnly",
                             "tpslMode", "leverageSysUpdatedTime", "mmrSysUpdatedTime", "stopLoss", "tradeMode",
@@ -335,7 +399,20 @@ class ByBitAPI:
         return PerFutures_df
 
     async def get_option_positions(self):
+        """
+        Fetches and returns the option positions for a given cryptocurrency.
 
+        Builds the request parameters and headers required for the API call, generates
+        the necessary signatures, and constructs the final URL for the API endpoint.
+        Sends an asynchronous GET request to the constructed URL and fetches the option
+        positions data.
+        Handles and prints errors in case the request fails.
+
+        Args:
+
+        Returns:
+            dict: A JSON object containing the option positions information or an error message.
+        """
         # option_position_params = "category=option&baseCoin=BTC&settleCoin=USDC"
         option_position_params = (f"category={self.category["option"]}" + f"&baseCoin={self.baseCoin}" +
                                       f"&settleCoin={self.settleCoin}")
@@ -377,7 +454,22 @@ class ByBitAPI:
         return self.option_position_info_json
 
     async def format_option_position_dataframe(self):
+        """
+        Format the JSON data containing option position information into a structured pandas DataFrame.
 
+        This method performs the following tasks:
+        1. Flatten JSON data and normalize it into a DataFrame.
+        2. Drop specific labels that are not required for analysis.
+        3. Initialize multiple numpy arrays to hold various computed values and metadata.
+        4. Merge these numpy arrays with the DataFrame.
+        5. Split the symbol into option type, expiry date, and strike price and compute delta values.
+        6. Convert specific DataFrame columns to their correct data types.
+
+        Raises:
+            Exception: General exception when splitting the symbol data.
+            Exception: General exception when processing data types of specific columns.
+
+        """
         try:
             if self.option_position_info_json is not None:
                 self.options_position_dataframe = pd.json_normalize(

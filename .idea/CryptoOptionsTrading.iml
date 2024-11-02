@@ -8,8 +8,13 @@
       <excludeFolder url="file://$MODULE_DIR$/src/.ipynb_checkpoints" />
       <excludeFolder url="file://$MODULE_DIR$/notebook/.ipynb_checkpoints" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.13 (ven3_13_0)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.13 (ven_3_13_0)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="PyDocumentationSettings">
+    <option name="format" value="GOOGLE" />
+    <option name="myDocStringFormat" value="Google" />
+    <option name="renderExternalDocumentation" value="true" />
   </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="py.test" />

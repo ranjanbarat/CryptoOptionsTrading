@@ -1,3 +1,4 @@
+# noinspection GrazieInspection
 """"
 # This is a sample Python script.
 
@@ -17,11 +18,55 @@ packaging_tutorial/
 
 """
 
-from ByBit import CoreLogic
-import datetime
 import asyncio
+import datetime
+
+from ByBit import CoreLogic
+
 
 async def mainApp():
+    """
+    The mainApp function serves as the entry point of the application.
+    It continuously monitors
+    the system time and triggers core logic computation at specific intervals.
+
+    Attributes:
+      btcCoreLogic (CoreLogic): Initializes the CoreLogic object with trading parameters.
+
+        Parameters:
+        - api_url (str): API URL.
+        - api_endpoint (str): Endpoint URI.
+        - api_keys (str): API Keys.
+        - api_secret (str): API Secret.
+        - baseCoin (str): BaseCoin, which must be either BTC, ETH, or SOL.
+        - settleCoin (str): Settlement coin.
+        - default_quantity (float): Default short quantity.
+        - daily (bool): Indicator for daily option trading.
+        - weekly (bool): Indicator for weekly option trading.
+        - monthly (bool): Indicator for monthly option trading.
+        - quarterly (bool): Indicator for quarterly option trading.
+        - delta_value (float): Delta value beyond which positions are taken.
+        - min_bid_price (float): Minimum bid price to eliminate blank bid strikes.
+        - initial_mark_price_diff (float): Difference between mark and bid price, expressed as a percentage.
+        - max_mark_price_diff (float): Maximum difference between mark and bid price.
+        - mark_price_diff_steps (float): Incremental step size for mark and ask price difference.
+        - daily_delta_limit (float): Daily delta deviation limit for hedging with perpetual futures.
+        - weekly_delta_limit (float): Weekly delta deviation limit.
+        - monthly_delta_limit (float): Monthly delta deviation limit.
+        - quarterly_delta_limit (float): Quarterly delta deviation limit.
+
+    Raises:
+      Exception: If an error occurs during the execution of the core logic computation.
+
+    Execution:
+      The function runs an infinite loop, checking the system's current UTC time.
+      If the current minute is divisible by 5,
+      it triggers the core logic computation of the btcCoreLogic object and then sleeps for 60 seconds.
+      If the minute is
+      not divisible by 5, it sleeps until the next execution time.
+      If any exception occurs, it prints an alert message and
+      exits the main while loop.
+    """
     btcCoreLogic = CoreLogic(api_url="https://api-demo.bybit.com",  # API URL
                              api_endpoint="/v5/market/tickers",  # Endpoint URI
                              api_keys="6TzoOeOuyIDiJN9cOu",  # API Keys
@@ -72,4 +117,3 @@ async def mainApp():
 if __name__ == '__main__':
     asyncio.run(mainApp())
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

@@ -1,5 +1,15 @@
-import pandas as pd
+"""
+    This function Option Chain Expiry, then Filters the Symbol with the Following Conditions:
+        1. Delta : It Should be below or equal to the Provided Delta Value for Both CALL & PUT Options
+            As Delta is Negative for PUT Option & Positive for CALL Option
+        2. The Position should have some Existing BID Values
+        3. We should Recommend a Position that has a Near ZERO i.e., CALL Delta + PUT Delta =
+        ~0.00X
+        4. Return the CALL & PUT Options for Placing an Order
+"""
 import time
+
+import pandas as pd
 
 
 async def recommend_option_position(delta_value: float = 0.07,
@@ -16,15 +26,16 @@ async def recommend_option_position(delta_value: float = 0.07,
         3. We should Recommend a Position that has a Near ZERO i.e., CALL Delta + PUT Delta =. ~0.00X
         4. Return the CALL & PUT Options for Placing an Order
 
-    :parameter delta_value: Maximum Delta Value beyond which we will take the position
-    :parameter min_bid_price: Minimum Bid Price Amount to Avoid Blank Bids & Asks
-    :parameter max_mark_price_diff: Maximum Difference between Mark & Bid Price i.e., 0.2 repreents 20 %
-    :parameter mark_price_diff_steps:
-    :parameter initial_mark_price_diff:
-    :parameter option_chain:
+    Args:
+        delta_value: The target delta value used to filter options. Default is 0.07.
+        min_bid_price: The minimum bid price for the options. Default is 0.01.
+        initial_mark_price_diff: The initial maximum allowable difference between the mark price and bid price. Default is 0.05.
+        max_mark_price_diff: The maximum allowable difference between the mark price and bid price. Default is 0.3.
+        mark_price_diff_steps: The steps to increment the mark price difference during iterations. Default is 0.05.
+        option_chain: A pandas DataFrame containing the option chain data.
 
-    :returns call_strike:
-    :returns put_strike:
+    Returns:
+        A tuple containing the recommended call and put option strikes.
     """
     start = time.perf_counter()
     # Initialize the Static String Variable for CALL & PUT

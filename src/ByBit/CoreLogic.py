@@ -5,7 +5,7 @@ Choosing the Correct Options Trade Positions for ALL Expires:
 NOTE: Check with Latest Options Positions: if the Position for the current Expiry exists, then take NO Action
 
 1. Find the CALL Options with Delta Less Than 0.7 & PUT Options with Delta Greater than 0.7
-2. Ensure that BID Exists for these Options : BID Is Not Blank
+2. Ensure that BID Exists for these Options : BID Isn't Blank
 3. Match the Delta for Both CALL & PUT, Means if we Opt for a CALL Option with 0.06 Delta,
     we should have PUT Options with -0.06 Delta, NOTE: "Mismatch Tolerance Limit is of ~0.01 only"
 4. Send the Selected "Symbols" for Order Processing
@@ -28,7 +28,45 @@ from .RecommendOptionPosition import recommend_option_position
 
 class CoreLogic(object):
     """
-    Core Logic Class for the ByBit Trading Bot
+    CoreLogic class handles the operations required for processing and managing
+    option positions using the ByBit API.
+
+    This class initializes parameters, interacts with the ByBit API, fetches
+    options data, and performs delta computation and other risk management tasks.
+
+    :ivar api_url: ByBit API URL to fetch the details.
+    :ivar api_endpoint: Endpoint URI for the API.
+    :ivar api_keys: API Key for the ByBit Account.
+    :ivar api_secret: API Secret for the ByBit API.
+    :ivar baseCoin: Coin type can be "BTC", "ETH", or "SOL".
+    :ivar settleCoin: Coin used for settlement.
+    :ivar quantity: Default options short quantity.
+    :ivar daily: Indicates if daily options positions are taken.
+    :ivar weekly: Indicates if weekly options positions are taken.
+    :ivar monthly: Indicates if monthly options positions are taken.
+    :ivar quarterly: Indicates if quarterly options positions are taken.
+    :ivar delta_value: Delta value beyond which positions are taken.
+    :ivar min_bid_price: Minimum bid price to eliminate blank bid strikes.
+    :ivar initial_mark_price_diff: The initial difference between mark and bid price
+     (for example, 0.05 means 5%).
+    :ivar max_mark_price_diff: Maximum allowed difference between mark & bid price.
+    :ivar mark_price_diff_steps: Incremental step size for mark & ask difference
+     percentage.
+    :ivar daily_delta_limit: Tolerated delta deviation limit for daily options.
+    :ivar weekly_delta_limit: Tolerated delta deviation limit for weekly options.
+    :ivar monthly_delta_limit: Tolerated delta deviation limit for monthly options.
+    :ivar quarterly_delta_limit: Tolerated delta deviation limit for quarterly
+     options.
+    :ivar position_df: DataFrame that contains the current position data.
+    :ivar position_json_data: JSON format of the current position data.
+    :ivar PerpFutures_df: DataFrame that contains perpetual futures data.
+    :ivar PerpFutures_json_data: JSON format of the perpetual futures data.
+    :ivar expiry_df: DataFrame containing the expiry details.
+    :ivar delta_risk_multiplier: Multiplier is used for delta risk computation.
+    :ivar PerpFutures_position: Current perpetual futures position.
+    :ivar total_perpFutures: Total perpetual futures data aggregated.
+    :ivar total_delta_risk_magnitude: Magnitude of total delta risk.
+    :ivar required_PerfFutures_position: Required position for perpetual futures.
     """
     def __init__(self, api_url: str = "https://api-demo.bybit.com",  # API URL
                  api_endpoint: str = "/v5/market/tickers",  # Endpoint URI
@@ -56,33 +94,33 @@ class CoreLogic(object):
                  quarterly_delta_limit: float = 0.10,  # Quarterly Delta Deviation Limit
                 ):
         """
-        :parameter api_url :type :string : ByBit API Url to fetch the details
-        :parameter api_endpoint :type :string : Not Required // Need to remove
-        :parameter api_keys :type :string : API Key for the ByBit Account
-        :parameter api_secret :type :string : API Secret for the ByBit API
+        This class initializes and configures parameters for trading options and perpetual futures on the ByBit
+        exchange.
+        It handles API connection settings, market categories, base coin types, and default trading
+        quantities.
+        The class also sets various thresholds and limits related to market prices, bid prices,
+        delta values, and delta deviation limits for hedging.
 
-        :parameter baseCoin :type :string : We need the Coin Type Only "BTC", "ETH", ""
-        :parameter default_quantity :type :float : Default Options Short Quantity
-
-        :parameter daily :type: Bool : To Indicate if we are taking Daily Options Position
-        :parameter weekly :type: Bool : To Indicate if we are taking Weekly Options Position
-        :parameter monthly :type: Bool : To Indicate if we are taking Monthly Options Position
-        :parameter quarterly :type: Bool : To Indicate if we are taking Quarterly Options Position
-
-        :parameter delta_value :type :float : Delta Value beyond which we would take our Positions
-        :parameter min_bid_price :type :float : Minumum Bid Price to eliminate the Blank Bid Strikes
-        :parameter initial_mark_price_diff :type :float : The Difference Between Mark & Bid Price 0.05 means 5%
-        :parameter max_mark_price_diff :type :float : Maximum Difference between Mark & Bid Price
-        :parameter mark_price_diff_steps :type :float : Mark & Ask Difference Percentage Incremental Step Size
-
-        # Tolarated Delta Deavation Limit, after which we Negate the Delta Deavation
-        # by hedging with Perpectual Futuers
-
-        :parameter daily_delta_limit :type :float # Daily Delta Deviation Limit
-        :parameter weekly_delta_limit :type :float = 0.10, # Weekly Delta Deviation Limit
-        :parameter monthly_delta_limit :type :float = 0.10, # Monthly Delta Deviation Limit
-        :parameter quarterly_delta_limit :type :float = 0.10, # Quarterly Delta Deviation Limit
-
+        :param api_url: The base URL for the ByBit API.
+        :param api_endpoint: The endpoint URI for fetching market data from the ByBit API.
+        :param api_keys: API Keys for authenticating with the ByBit API.
+        :param api_secret: API Secret for authenticating with the ByBit API.
+        :param baseCoin: The base coin for trading options (BTC, ETH, SOL).
+        :param settleCoin: The settlement coin for trading.
+        :param default_quantity: The default quantity for trades.
+        :param daily: Flag to specify if daily options should be included (True or False).
+        :param weekly: Flag to specify if weekly options should be included (True or False).
+        :param monthly: Flag to specify if monthly options should be included (True or False).
+        :param quarterly: Flag to specify if quarterly options should be included (True or False).
+        :param delta_value: The delta value threshold beyond which positions are taken.
+        :param min_bid_price: The minimum bid price to eliminate blank bid strikes.
+        :param initial_mark_price_diff: The initial difference between mark price and bid price.
+        :param max_mark_price_diff: The maximum allowed difference between mark price and bid price.
+        :param mark_price_diff_steps: Incremental step size for the mark and ask price difference.
+        :param daily_delta_limit: Daily delta deviation limit for hedging.
+        :param weekly_delta_limit: Weekly delta deviation limit for hedging.
+        :param monthly_delta_limit: Monthly delta deviation limit for hedging.
+        :param quarterly_delta_limit: Quarterly delta deviation limit for hedging.
         """
         # USDC Perpetual : BTCPERP, ETHPERP, SOLPERP
         if baseCoin == "BTC":
@@ -167,6 +205,17 @@ class CoreLogic(object):
         self.required_PerfFutures_position: float = 0.0
 
     async def core_logic_computation(self):
+        """
+        Performs core logic computation for the ByBit options and futures trading strategy.
+
+        Detailed steps include fetching ticker data, formatting dataframes, segregating option
+        expiries, fetching position data, updating expiry dictionary, checking existing positions,
+        computing delta hedging requirements, and executing delta hedging.
+
+        :raises Exception: If there's an error while fetch the option position.
+
+        :return: None
+        """
         ByBit = ByBitOptionData(api_url=self.api_url, api_endpoint=self.api_endpoint, api_parameters=self.api_params)
         # Fetch the Ticker Data
         await ByBit.fetch_ByBit_ticker_data()
@@ -178,9 +227,13 @@ class CoreLogic(object):
          self.current_quarterly, self.next_quarterly, self.next_to_next_quarterly,
          self.expiry) = await ByBit.segregate_options_expiry()
 
-        # Fetch the Current Positions Data
-        self.position_json_data = await self.ByBitAPI.get_option_positions()
-        self.position_df = await self.ByBitAPI.format_option_position_dataframe()
+        try:
+            # Fetch the Current Positions Data
+            self.position_json_data = await self.ByBitAPI.get_option_positions()
+            self.position_df = await self.ByBitAPI.format_option_position_dataframe()
+
+        except Exception as e:
+            print(f"Error in Fetching the Options Position, Error Details {e}")
 
         # Update the Expiry Dates in to the Expiry Dictionary
         await self.set_expiry_delta_in_dictionary()
@@ -200,6 +253,21 @@ class CoreLogic(object):
         await self.compute_delta_hedging()
 
     async def compute_delta_hedging(self):
+        """
+        Compute delta hedging requirements and risk parameters for various expiries.
+
+        This asynchronous method computes the delta hedging requirements for
+        perpetual futures based on the positions in the `position_df` DataFrame.
+        It assesses the risk parameters for daily, weekly, monthly, and quarterly
+         expiries and compares them against predefined limits to determine if any
+        risk thresholds are exceeded.
+        The method also fetches the existing
+        perpetual futures position and adjusts the position accordingly.
+
+        Returns
+        -------
+        None
+        """
 
         excess_columns = ["symbol", "avgPrice", "delta", "theta", "positionValue", "unrealisedPnl", "size",
                           "markPrice","createdTime", "seq", "updatedTime","side","curRealisedPnl","positionStatus",
@@ -227,7 +295,10 @@ class CoreLogic(object):
             daily_delta_risk = round(sum(self.expiry_df[self.expiry_df.expiry_type == "daily"].PerpFutureQty), 6)
             daily_delta_risk_magnitude = self.delta_risk_multiplier * self.daily_delta_limit * self.quantity
 
-            if daily_delta_risk > daily_delta_risk_magnitude:
+            unrealisedPnL = round(sum(self.position_df[self.position_df["expiry_type"] == "daily"].unrealisedPnl), 6)
+            print(f"Daily unrealised PnL: {unrealisedPnL} ")
+
+            if abs(daily_delta_risk) > abs(daily_delta_risk_magnitude):
                 self.total_delta_risk_magnitude = self.total_delta_risk_magnitude + daily_delta_risk
                 print(f"Attention !!!! : Daily Delta Risk Paramater Exceeded : {daily_delta_risk_magnitude}, "
                       f"Risk Magnitude : {daily_delta_risk}, Total Risk Magnitude : {self.total_delta_risk_magnitude}")
@@ -243,7 +314,10 @@ class CoreLogic(object):
             weekly_delta_risk = round(sum(self.expiry_df[self.expiry_df.expiry_type == "weekly"].PerpFutureQty), 6)
             weekly_delta_risk_magnitude = self.delta_risk_multiplier * self.weekly_delta_limit * self.quantity
 
-            if weekly_delta_risk > weekly_delta_risk_magnitude:
+            unrealisedPnL = round(sum(self.position_df[self.position_df["expiry_type"] == "weekly"].unrealisedPnl), 6)
+            print(f"Weekly unrealised PnL: {unrealisedPnL} ")
+
+            if abs(weekly_delta_risk) > abs(weekly_delta_risk_magnitude):
                 self.total_delta_risk_magnitude = self.total_delta_risk_magnitude + weekly_delta_risk
 
                 print(f"Attention !!!! : Weekly Delta Risk Paramater Exceeded : {weekly_delta_risk}, "
@@ -261,7 +335,10 @@ class CoreLogic(object):
             monthly_delta_risk = round(sum(self.expiry_df[self.expiry_df.expiry_type == "monthly"].PerpFutureQty), 6)
             monthly_delta_risk_magnitude = self.delta_risk_multiplier * self.monthly_delta_limit * self.quantity
 
-            if monthly_delta_risk > monthly_delta_risk_magnitude:
+            unrealisedPnL = round(sum(self.position_df[self.position_df["expiry_type"] == "monthly"].unrealisedPnl), 6)
+            print(f"Monthly unrealised PnL: {unrealisedPnL} ")
+
+            if abs(monthly_delta_risk > monthly_delta_risk_magnitude):
                 self.total_delta_risk_magnitude = self.total_delta_risk_magnitude + monthly_delta_risk
 
                 print(f"Attention !!!! : Monthly Delta Risk Paramater Exceeded : {monthly_delta_risk}, "
@@ -279,7 +356,11 @@ class CoreLogic(object):
             quarterly_delta_risk = round(sum(self.expiry_df[self.expiry_df.expiry_type == "quarterly"].PerpFutureQty), 6)
             quarterly_delta_risk_magnitude = self.delta_risk_multiplier * self.quarterly_delta_limit * self.quantity
 
-            if quarterly_delta_risk > quarterly_delta_risk_magnitude:
+            unrealisedPnL = round(sum(self.position_df[self.position_df["expiry_type"] == "quarterly"].unrealisedPnl),
+                                  6)
+            print(f"Quarterly unrealised PnL: {unrealisedPnL} ")
+
+            if abs(quarterly_delta_risk > quarterly_delta_risk_magnitude):
                 self.total_delta_risk_magnitude = self.total_delta_risk_magnitude + quarterly_delta_risk
                 print(f"Attention !!!! : Quarterly Delta Risk Paramater Exceeded : {quarterly_delta_risk}, "
                       f"Risk Magnitude : {quarterly_delta_risk_magnitude}, "
@@ -310,15 +391,33 @@ class CoreLogic(object):
         except Exception as e:
             print(f"Error in Fetcting the Perpectual Futures Position Error Details : {e}")
 
-        # Compute the Perpectual Future Position Requirements AND Take the Required Position
         try:
-            if self.total_perpFutures >= self.total_delta_risk_magnitude:
-                # Take the Perpectual Futuers Position
-                self.required_PerfFutures_position = round(self.total_perpFutures, 3)
-
-            elif self.total_perpFutures < self.total_delta_risk_magnitude:
+            # Compute the Perpectual Future Position Requirements and Take the Required Position
+            # Take the Minimum Hedge Position as the Program is Constantly Rehedging Every 5 Minutes
+            if abs(self.total_perpFutures) >= abs(self.total_delta_risk_magnitude):
                 # Take the Perpectual Futuers Position
                 self.required_PerfFutures_position = round(self.total_delta_risk_magnitude, 3)
+
+            elif abs(self.total_perpFutures) < abs(self.total_delta_risk_magnitude):
+                # Take the Perpectual Futuers Position
+                self.required_PerfFutures_position = 0.0
+
+            # Compute the Actual Future Position Requirements,
+            # If Requirements is Positive then to Balance, it needs to Short Same Quantity
+            # If the Requirements is Negative then it needs to go Long on Similar Quantity
+            if self.required_PerfFutures_position == 0:
+                print(
+                    f"No Perpectual Futures Position is Required as Requirements is : {self.required_PerfFutures_position}")
+            elif self.required_PerfFutures_position > 0:
+                self.required_PerfFutures_position = round((self.required_PerfFutures_position * (-1.0)), 3)
+                print(
+                    f"We need to Go Short PerpFuture with following Quantity : {abs(self.required_PerfFutures_position)}, "
+                    f"Setting PerpFuture Quantity as : {self.required_PerfFutures_position} ")
+            elif self.required_PerfFutures_position < 0:
+                self.required_PerfFutures_position = round((self.required_PerfFutures_position * (-1.0)), 3)
+                print(
+                    f"We need to Go Long PerpFuture with following Quantity : {abs(self.required_PerfFutures_position)}, "
+                    f"Setting PerpFuture Quantity as : {self.required_PerfFutures_position} ")
 
             # Take the Perpectual Futures Positions Based on the Computations
             await self._check_PerpFutures_Quantity_and_take_PerpFutures_position(
@@ -331,6 +430,15 @@ class CoreLogic(object):
 
     async def _check_PerpFutures_Quantity_and_take_PerpFutures_position(self, PerpFut_Position,
                                                                         PerpFut_Requirement):
+        """
+        Checks the current perpetual futures position against the required position and executes necessary buy or sell
+        orders to align the current position with the requirement using the ByBit API.
+
+        :param float PerpFut_Position: The current perpetual futures position.
+        :param float PerpFut_Requirement: The required perpetual futures position.
+        :return: The adjustment quantity required to match the perpetual futures position with the requirement.
+        :rtype: Float
+        """
 
         adjustment_quantity = 0.0
         if PerpFut_Position == 0.0:
@@ -437,6 +545,16 @@ class CoreLogic(object):
 
 
     async def set_expiry_delta_in_dictionary(self):
+        """
+        Updates the expiry dictionary with delta hedging values for each expiry category.
+
+        This method assigns delta limits to the expiry dictionary categories including
+        daily, weekly, monthly, and quarterly based on the corresponding delta limit
+        attributes.
+        If an error occurs during this process, the error is caught and printed.
+
+        :raises: Exception if there's an error during the assignment process
+        """
         try :
             # Assigne the Delta Hedging Values into the Expiry Dictionary for each Expiry
             self.expiry["daily"]["delta_limit"] = self.daily_delta_limit
@@ -448,6 +566,19 @@ class CoreLogic(object):
                   f"Error Details : {e}")
 
     async def set_delta_limit_and_compute_hedging(self):
+        """
+        Asynchronously sets delta limit values for different expiry types in the
+        positions DataFrame and computes necessary hedging requirements.
+
+        The function assigns predefined delta limits to positions based on their
+        expiry type (daily, weekly, monthly, and quarterly).
+        It then checks if the delta hedging exceeds the set expiry delta limit and
+        flags those positions where hedging is required.
+        Appropriate hedging quantities are also assigned.
+
+        :raises Exception: If there's an error in setting delta values or computing
+            hedging.
+        """
         try:
             # Assigne the Delta Limit Values into the Positions DataFrame for each Expiry
             self.position_df.loc[self.position_df.expiry_type == "daily", "expiry_delta"] = self.daily_delta_limit
@@ -476,6 +607,17 @@ class CoreLogic(object):
                   f"Error Details : {e}")
 
     async def check_delta_computation(self):
+        """
+        Check if the total delta computed for the option positions matches the delta computed
+        for hedging and prints the results accordingly.
+
+        Analyzes the total delta from `self.position_df.total_delta` and the delta related
+        to hedging from `self.position_df.delta_hedging`.
+        Verifies if they match up to six decimal places and, if they do, prints a success message.
+        If not, prints an error message.
+
+        :return: None
+        """
         if round(sum(self.position_df.total_delta), 6) == round(sum(self.position_df.delta_hedging) / 2, 6):
             print(f"Total Delta is Computed Correctly !!! , Total Options Open Positional Detla is : ",
                   f"{sum(self.position_df.total_delta)}",
@@ -487,6 +629,23 @@ class CoreLogic(object):
                   f"Total Delta Computed for Hedging : {sum(self.position_df.delta_hedging) / 2}")
 
     async def check_existing_position_and_take_new_positions(self):
+        """
+        Check existing positions and take new positions.
+
+        This asynchronous method processes the expiry of positions on a daily,
+        weekly, monthly, and quarterly basis by calling respective methods
+        that handle each timeframe.
+
+        :async:
+            Asynchronous function.
+
+        :raises Exception:
+            If an error occurs during the processing of expiry, an Exception
+            will be raised.
+
+        :returns:
+            None
+        """
 
         await self._process_daily_expiry()
         await self._process_weekly_expiry()
@@ -496,6 +655,19 @@ class CoreLogic(object):
     async def _process_expiry(self, option_chain: pd.DataFrame | None =None,
                               position_direction: str | None = None,
                               quantity: np.float64 | None = None):
+        """
+        Processes the expiry of options by recommending and placing option orders based on
+        certain criteria.
+
+        :param option_chain: A DataFrame representing the option chain data.
+        :type option_chain: Pd.DataFrame, optional
+        :param position_direction: The direction of the position to be created ('BUY' or 'SELL').
+        :type position_direction: Str, optional
+        :param quantity: The quantity for the order to be placed.
+        :type quantity: np.float64, optional
+        :return: None
+
+        """
 
         # new_options_position:bool = False
 
@@ -522,6 +694,19 @@ class CoreLogic(object):
         # return new_options_position
 
     async def _process_daily_expiry(self):
+        """
+        Processes the daily expiry positions for current, next, and next-to-next expiry dates
+        and updates the expiry dictionary and position DataFrame.
+
+        The method checks if positions exist for the defined expiry dates and updates the
+        expiry dictionary accordingly.
+        If positions don't exist and the daily flag is set to True,
+        it processes the option order for each expiry date.
+        In case of any exceptions during these operations, the errors are logged.
+
+        :param self: The object instance.
+        :return: None
+        """
         # Daily: Current Daily Position
         ## Update the Daily Expiry Dictionary
         # Update the Daily: Current Daily
@@ -622,6 +807,14 @@ class CoreLogic(object):
             print(f"Error in Processing Next To Next Daily Expiry, Error Details :{e}")
 
     async def _process_weekly_expiry(self):
+        """
+        Processes the weekly expiry positions by checking the current, next, and next-to-next weekly expiry dates.
+        Updates relevant dictionaries and invokes a method to process expiry orders if positions don't exist.
+
+        :param self: The object instance.
+        :return: None
+
+        """
 
         # Weekly: Current Weekly Position
         ## Update the Weekly Expiry Dictionary
@@ -651,7 +844,7 @@ class CoreLogic(object):
             self.expiry["weekly"]["current"]["position_exist"] = False
 
         # Weekly: Next Weekly Position
-        # Update the Weekly: Next Weekly
+        # Updates the Weekly: Next Weekly
         if len(self.position_df.loc[
                    self.position_df.expiry == self.expiry["weekly"]["next"]["date"], "expiry_type"]) > 0:
             print(f"Position Exist for the Expiry Date : {self.expiry["weekly"]["next"]["date"]}, "
@@ -704,6 +897,16 @@ class CoreLogic(object):
             self.expiry["weekly"]["next_to_next"]["position_exist"] = False
 
     async def _process_monthly_expiry(self):
+        """
+        Processes monthly expiry updates and order placements.
+
+        This function is responsible for updating the expiry dictionary, checking and updating
+        positions for current, next, and next-to-next monthly expirations, and processing option
+        orders based on the expiry dates.
+
+        :param self: The object instance.
+        :return: None
+        """
 
         # Monthly: Currently Monthly Positions
         ## Update the Monthly Expiry Dictionary
@@ -789,7 +992,15 @@ class CoreLogic(object):
             self.expiry["monthly"]["next_to_next"]["position_exist"] = False
 
     async def _process_quarterly_expiry(self):
+        """
+        Processes the quarterly expiry positions by updating the expiry dictionary and placing
+        orders if necessary.
+        It checks the current, next, and next-to-next quarterly positions and
+        updates their statuses accordingly.
 
+        :param self: The object instance.
+        :return: None
+        """
         # Quarterly: Current Quarterly Positions
         ## Update the Quarterly Expiry Dictionary
         # Update the Quarterly: Current Quarterly

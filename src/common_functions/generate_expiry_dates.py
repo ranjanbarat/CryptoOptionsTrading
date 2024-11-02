@@ -1,3 +1,6 @@
+"""
+Generates lists of expiry dates on a weekly, monthly, and quarterly basis starting from a given date.
+"""
 from datetime import timedelta, date, datetime
 from typing import Any
 
@@ -8,18 +11,20 @@ def generate_expiry_dates(weekly_count: int = 4,
                           today: datetime.date = date.today(),
                           duplicates:bool = False,):
     """
+    Generates lists of expiry dates on a weekly, monthly, and quarterly basis starting from a given date.
 
-    :param duplicates:
-    :param weekly_count: Number of Weekly Expiry Dates that to be Returned
-    :param monthly_count: Number of Monthly Expiry Dates that to be Returned
-    :param quarterly_count: Number of Quarterly Expiry Dates that to be Returned
+    Args:
+        weekly_count: The number of weekly expiry dates to generate.
+        monthly_count: The number of monthly expiry dates to generate.
+        quarterly_count: The number of quarterly expiry dates to generate.
+        today: The starting date for generating expiry dates.
+        duplicates: A flag indicating whether to allow duplicate entries in the expiry date lists.
 
-    :param today: The Current Date From which the Weekly, Monthly & Quarterly Expiry Dates to be Calculated
-
-    :return: weekly_expiry_dates: List of Weekly Expires dates
-    :return: monthly_expiry_dates: List of Monthly Expires dates
-    :return: quarterly_expiry_date_list: List of Quarterly Expires dates
-
+    Returns:
+        A tuple containing three lists:
+            - List of weekly expiry dates.
+            - List of monthly expiry dates.
+            - List of quarterly expiry dates.
     """
     # List of Month Values that constitute the Quarterly Value Parameters
     quarterly_list = [3, 6, 9, 12]

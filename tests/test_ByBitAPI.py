@@ -1,6 +1,4 @@
 # test_ByBitAPI.py
-
-import pytest
 from src.ByBit.ByBitAPI import ByBitAPI
 
 
@@ -36,7 +34,7 @@ def test_init_with_all_parameters():
     assert api.json_options_position_params is None
     assert api.perp_future_position_params == {}
     assert api.json_perp_future_position_params is None
-    assert api.option_position_params == {}
+    assert api.option_position_params is None
     assert api.json_option_position_params is None
     assert api.option_position_info_json is None
     assert api.options_position_dataframe is None
@@ -68,7 +66,7 @@ def test_init_with_missing_optional_parameters():
     assert api.json_options_position_params is None
     assert api.perp_future_position_params == {}
     assert api.json_perp_future_position_params is None
-    assert api.option_position_params == {}
+    assert api.option_position_params is None
     assert api.json_option_position_params is None
     assert api.option_position_info_json is None
     assert api.options_position_dataframe is None

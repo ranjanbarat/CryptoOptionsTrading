@@ -32,24 +32,34 @@ Algorithm as Follows:
             c. Next To Next Quarterly
 """
 
-import httpx
-import pandas as pd
-import numpy as np
 import datetime
-from datetime import datetime
-from .ByBitExpiry import ByBitExpiry
 import time
+from datetime import datetime
+
+import httpx
+import numpy as np
+import pandas as pd
+
+from .ByBitExpiry import ByBitExpiry
 
 
 class ByBitOptionData(object):
+    """
+    class ByBitOptionData(object):
+
+    def __init__(self, api_url: str | None = None,
+                 api_endpoint: str | None = None,
+                 api_parameters: dict | None = None):
+    """
 
     def __init__(self, api_url: str | None = None,
                  api_endpoint: str | None = None,
                  api_parameters: dict | None = None):
         """
-        :param api_url: String : API URL to initialize the Class
-        :param api_endpoint: String : Specific API EndPoint for Fetching the API Data
-        :param api_parameters: Dictionary : API Parameters for Fetching the Options data from API URL EndPoints
+        Args:
+            api_url: The base URL for the API.
+            api_endpoint: The specific API endpoint to be accessed.
+            api_parameters: A dictionary of parameters required for the API call.
         """
         # API URL is a Mandatory Parameter to Initialize the ByBitOptionData Class
         self.api_url = api_url
@@ -134,6 +144,21 @@ class ByBitOptionData(object):
         # FOR THESE VARIABLES FOR THE NEXT DATCH OF DATAFRAME PROCESSING
 
     async def _reinitialise_class_variables(self):
+        """
+        Reinitializes the class variables for data processing.
+
+        This method is responsible for the following tasks:
+        1. Initializes a blank DataFrame object for storing JSON data into a Pandas DataFrame object.
+        2. Initializes variables to handle symbol details including base coin expiry dates,
+        strike price, and option type.
+        3. Sets up the ByBit date format for extracting dates from the symbol.
+        4. Initializes numpy arrays for storing option types, strike prices, and expiry dates.
+        5. Sets up dictionaries to store daily, weekly, monthly, and quarterly expiry dates,
+        each containing current, next, and next-to-next expiry dates.
+        6. Initializes a DataFrame for holding expiry dates extracted from the primary DataFrame.
+        7. Prepares DataFrames for storing extracted expiry-wise data for daily, weekly,
+        monthly, and quarterly periods, each with current, next, and next-to-next subsets.
+        """
         print("Class Variables Reinitialization Initiated")
         # Initialize the Blank DataFrame Object for storing the JSON Data into Pandas DataFrame Object
         self.dataframe: pd.DataFrame | None = None
@@ -206,8 +231,14 @@ class ByBitOptionData(object):
 
     async def fetch_ByBit_ticker_data(self):
         """
-        This Function is fetch the Ticker Data for ByBit Option Chain from ByBit Platform
-        :return: None
+        Fetch ByBit option ticker data asynchronously.
+
+        This method reinitializes the class variables to ensure previous data is not stored
+        and makes an async API call to fetch the full option data table from ByBit.
+        The data is then converted into a pandas DataFrame for further processing and analysis.
+
+        Returns:
+            None
         """
         # Reinitialise the ByBitOptionData Class variables to ensure no previous Data is stored into Memory;
         # Need to Re-Utilizing these Same Variables to Fetch & Store the Next Set of Option Data
@@ -234,6 +265,23 @@ class ByBitOptionData(object):
         print(f"Data Fetching from ByBit API is Completed in : {(end - start) * 10 ** 3} ms \n")
 
     async def format_the_dataframe(self):
+        """
+        Format the dataframe by converting columns to appropriate data types and initializing auxiliary arrays.
+
+        This method converts the columns of the dataframe to their respective required data types.
+        It initializes three numpy arrays (`option_type`, `strike_price`, `expiry`) with default values,
+        which will later be updated based on the processed symbol strings.
+
+        Conversion Steps:
+        1. Convert columns with appropriate data types.
+        2. Initialize numpy arrays with default values.
+        3. Split the 'symbol' column to extract and update `option_type`, `strike_price`, and `expiry`.
+
+
+        Exceptions are handled
+        to ensure
+        that datatype conversion errors and string splitting issues are logged without interrupting the process.
+        """
         start = time.perf_counter()
 
         # Convert the "DataFrame" dtype: "Object" into their Correct dtypes
@@ -394,7 +442,7 @@ class ByBitOptionData(object):
             # It will remain "1-1-2000" for error Cases
             try:
                 self.expiry[i] = datetime.strptime(str(self.split_symbol[1]), self.ByBit_date_format).date()
-                # print(f"Successfully Updated the {i} Expiry Date Type as : {self.expiry[i]}")
+                # print(f"Successfully Updated the {i} Expiry Date Type as: {self.expiry[i]}")
             # Catch the arising Exception if any, then Print it as Log
             except Exception as e:
                 print(f"Error Details : {e}")
@@ -405,7 +453,7 @@ class ByBitOptionData(object):
             # It will remain "-5000.00" for error Cases
             try:
                 self.strike_price[i] = float(self.split_symbol[2])
-                # print(f"Successfully Updated the {i} Strike Price as : {self.strike_price[i]}")
+                # print(f"Successfully Updated the {i} Strike Price as: {self.strike_price[i]}")
             # Catch the arising Exception if any, then Print it as Log
             except Exception as e:
                 print(f"Error Details : {e}")
@@ -420,7 +468,7 @@ class ByBitOptionData(object):
                 elif self.split_symbol[3] == "C":
                     self.option_type[i] = "CALL"
 
-                # print(f"Successfully Updated the {i} Option Type as : {self.option_type[i]}")
+                # print(f"Successfully Updated the {i} Option Type as: {self.option_type[i]}")
             # Catch the arising Exception if any, then Print it as Log
             except Exception as e:
                 print(f"Error Details : {e}")
@@ -462,6 +510,13 @@ class ByBitOptionData(object):
                                        weekly_count_inputs: int = 5,
                                        monthly_count_inputs: int = 4,
                                        quarterly_count_inputs: int = 5):
+        """
+        Args:
+            weekly_count_inputs: Number of weekly expiry dates to be processed.
+            monthly_count_inputs: Number of monthly expiry dates to be processed.
+            quarterly_count_inputs: Number of quarterly expiry dates to be processed.
+
+        """
         start = time.perf_counter()
 
         # Extracting Expiry Dates from the Primary DataFrame Object
@@ -499,9 +554,21 @@ class ByBitOptionData(object):
 
     async def _compute_daily_dataframe(self):
         """
-        This Function is to Compute the Daily Expiry DataFrame,
-        Exception Handling is addressed into Function, if there is an error in the DataFrame type case or None Value
-        :return:
+        Asynchronously computes the DataFrame for daily expiry options.
+
+        This method filters the primary DataFrame based on expiry dates specified in the
+        daily expiry dictionary and extracts three DataFrames:
+        current daily, next daily, and next-to-next daily.
+
+        Retrieves:
+            current_daily: DataFrame filtered by the current daily expiry date.
+            next_daily: DataFrame filtered by the next daily expiry date.
+            next_to_next_daily: DataFrame filtered by the next-to-next daily expiry date.
+
+        In case of errors during these operations, the method logs the exception details.
+
+        Exceptions:
+            Handles and logs any exceptions that occur while processing each daily DataFrame extraction.
         """
         print(f"Computing the Daily Expiry DataFrame ")
         # Try if we can extract the Current_Daily Options Chain from the Primary DataFrame
@@ -540,6 +607,25 @@ class ByBitOptionData(object):
                   f"Error Details : {e}")
 
     async def _compute_weekly_expiry(self):
+        """
+        Compute the weekly expiry data and store in corresponding class members.
+
+        This method performs the following tasks:
+        1. Computes the current weekly expiry DataFrame by filtering the primary DataFrame
+           using the current weekly expiry date.
+           - Logs the length of the resulting DataFrame.
+           - Logs any errors encountered during this operation.
+
+        2. Computes the next weekly expiry DataFrame by filtering the primary DataFrame
+           using the next weekly expiry date.
+           - Logs the length of the resulting DataFrame.
+           - Logs any errors encountered during this operation.
+
+        3. Computes the next-to-next weekly expiry DataFrame by filtering the primary DataFrame
+           using the next-to-next weekly expiry date.
+           - Logs the length of the resulting DataFrame.
+           - Logs any errors encountered during this operation.
+        """
         print(f"Computing the Weekly Expiry DataFrame ")
         # Try if we can extract the Current_Weekly Options Chain from the Primary DataFrame
         # Filtering the DataFrame using Date from Weekly_Expiry Dictionary
@@ -579,7 +665,23 @@ class ByBitOptionData(object):
                   f" : Error Details : {e}")
 
     async def _compute_monthly_expiry(self):
+        """
+        Compute the monthly expiry dataframes for the current, next, and next-to-next months from the primary dataframe.
 
+        This method performs the following steps:
+        1. Attempts to filter the primary dataframe for the current month's expiry date
+        and assigns it to self.current_monthly.
+           Logs the length of the resulting dataframe and the date used for filtering.
+           If an error occurs during this process, it logs the error details.
+        2. Attempts to filter the primary dataframe for the next month's expiry date
+        and assigns it to self.next_monthly.
+           Logs the length of the resulting dataframe and the date used for filtering.
+           If an error occurs during this process, it logs the error details.
+        3. Attempts to filter the primary dataframe for the next-to-next month's expiry date
+        and assigns it to self.next_to_next_monthly.
+           Logs the length of the resulting dataframe and the date used for filtering.
+           If an error occurs during this process, it logs the error details.
+        """
         print(f"Computing the Monthly Expiry DataFrame ")
         # Try if we can extract the Current_Monthly Options Chain from the Primary DataFrame
         # Filtering the DataFrame using Date from Monthly_Expiry Dictionary
@@ -619,6 +721,22 @@ class ByBitOptionData(object):
                   f" : Error Details : {e}")
 
     async def _compute_quarterly_expiry(self):
+        """
+        Asynchronously computes and assigns quarterly expiry data frames for the current,
+        next, and next-to-next quarters.
+        This function uses the expiry dates from the expiry dictionary
+        to filter the primary options chain data frame and
+        create separate data frames for each of the specified quarters.
+
+        Each step tries to create a data frame for a specific quarter by filtering the primary data frame
+        based on the relevant expiry date.
+        It logs the length of the resulting data frame or an error message if an
+        exception occurs.
+
+
+        Exceptions:
+            Catches and logs any exceptions that occur during the data frame filtering process.
+        """
         print(f"Computing the Quarterly Expiry DataFrame ")
 
         # Try if we can extract the Current_Quarterly Options Chain from the Primary DataFrame

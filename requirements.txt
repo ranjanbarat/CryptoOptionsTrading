@@ -3,12 +3,12 @@
 # setuptools
 # wheel
 
-numpy
-pandas
+numpy~=2.1.2
+pandas~=2.2.3
 # websockets
 
-httpx
-pytz
+httpx~=0.27.2
+# pytz
 
 # ByBit Official Python Packedge
 # pybit
@@ -17,3 +17,5 @@ pytz
 # matplotlib
 # jupyter
 # pytest
+
+pytest~=8.3.3

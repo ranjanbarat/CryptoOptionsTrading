@@ -1,15 +1,29 @@
-from common_functions import generate_expiry_dates
-from datetime import timedelta
-import pytz
+"""
+Class to manage and track the expiry dates of options contracts across various timeframes.
+"""
+
 import datetime
+from datetime import timedelta
+
 import pandas as pd
+
+from common_functions import generate_expiry_dates
 
 
 # TODO : NEW File Needs to be INCORPORATED Everywhere
 
 class ByBitExpiry(object):
-
+    """
+    Initializes the object with several attributes meant to track the expiry dates of options contracts
+    across multiple timeframes (daily, weekly, monthly, quarterly).
+    The attributes include expiry dates, lists, and dictionaries to maintain current and future expiry details.
+    """
     def __init__(self):
+        """
+        Initializes the object with several attributes meant to track the expiry dates of options contracts
+        across multiple timeframes (daily, weekly, monthly, quarterly).
+        The attributes include expiry dates, lists, and dictionaries to maintain current and future expiry details.
+        """
         # This Value is Set Everytime The Options Expiry Create Function is Called
         self.expiry_dates: pd.DataFrame or None = None
 
@@ -117,6 +131,24 @@ class ByBitExpiry(object):
         self.quarterly_expiry_dates: datetime.date or None = None
 
     async def _reinitialize_default_values(self):
+        """
+        Reinitializes the default values for expiry timeframes and their corresponding positions.
+
+        Initializes:
+          - `self.expiry_list` to an empty list to hold expiry dates extracted from a pandas DataFrame.
+          - `self.expiry` dictionary to store data for various timeframes including 'daily',
+          'weekly', 'monthly', and 'quarterly'.
+            For each timeframe, it sets:
+            - `delta_limit` to None.
+            - `current` to hold the date, existence status, position existence status, and a list of symbols.
+            - `next` with similar structure to 'current'.
+            - `next_to_next` with similar structure to 'current' and 'next'.
+          - Daily date values `self.today`, `self.tomorrow`, and `self.day_after_tomorrow`
+          to None representing the current day, next day,
+          and day after next, respectively, based on UTC timezone.
+          - Expiry date variables `self.weekly_expiry_dates`, `self.monthly_expiry_dates`,
+          and `self.quarterly_expiry_dates` to None for storing specific expiry dates.
+        """
         # Initialize the Expiry List Variable to hold the Expiry Dates, as extracted from Panda DataFrame
         self.expiry_list: list = []
 
@@ -224,7 +256,13 @@ class ByBitExpiry(object):
                                     weekly_count: int = 4,
                                     monthly_count: int = 4,
                                     quarterly_count: int = 4):
-
+        """
+        Args:
+            expiry_dataframe: DataFrame containing expiry dates.
+            weekly_count: Number of weekly expiry dates to generate.
+            monthly_count: Number of monthly expiry dates to generate.
+            quarterly_count: Number of quarterly expiry dates to generate.
+        """
         self.expiry_dates = expiry_dataframe
 
         await self._reinitialize_default_values()
@@ -249,6 +287,19 @@ class ByBitExpiry(object):
         return self.expiry
 
     async def _create_quarterly_expiry_dates(self):
+        """
+        Creates and sets quarterly expiry dates based on the existing expiry list.
+
+        Iterates through the `quarterly_expiry_dates`
+        in reverse order and checks if each date exists in the `expiry_list`.
+        If a date exists, it updates the nested dictionaries within `self.expiry`
+        for "current", "next", and "next_to_next" expiry dates.
+        Prints status messages for each date update.
+        Handles exceptions by printing an error message.
+
+        Raises:
+            Exception: If an error occurs during the processing of quarterly expiry dates.
+        """
         try:
             for i in range(1, len(self.quarterly_expiry_dates) + 1):
                 # print(f"Quarterly Expiry Dates Index : {-i}, Date : {self.quarterly_expiry_dates[-i]}")
@@ -285,6 +336,17 @@ class ByBitExpiry(object):
             print(f"Error Occurred while Formatting the Quarterly Expiry Dates, Error Code : {e}")
 
     async def _create_monthly_expiry_dates(self):
+        """
+        Creates and updates monthly expiry dates.
+
+        This asynchronous function iterates through the list of monthly expiry dates in reverse order.
+        For each date, it updates the `expiry` dictionary with "current", "next", and "next_to_next" expiry dates
+        if they are found in the `expiry_list` and are not yet set.
+        Prints diagnostic messages during its execution.
+
+        Raises:
+            Exception: If there is an error during the formatting of monthly expiry dates.
+        """
         try:
             for i in range(1, len(self.monthly_expiry_dates) + 1):
                 # print(f"Monthly Expiry Dates Index : {-i}, Date : {self.monthly_expiry_dates[-i]}")
@@ -323,6 +385,20 @@ class ByBitExpiry(object):
             print(f"Error Occurred while Formatting the Monthly Expiry Dates, Error Code : {e}")
 
     async def _create_weekly_expiry_dates(self):
+        """
+        Populates the weekly expiry dates in the expiry dictionary.
+
+        This method iterates through `weekly_expiry_dates` in reverse order and checks if each date exists
+        in `expiry_list`.
+        Depending on the current state of the `expiry` dictionary, it will set the dates
+        for "current", "next", and "next_to_next" weekly expiry dates if they are not already set.
+
+        Raises:
+            Exception: If an error occurs during the processing of weekly expiry dates.
+
+        Logs:
+            Logs the setting of expiry dates and whether expiry dates exist in the expiry list.
+        """
         try:
             for i in range(1, len(self.weekly_expiry_dates) + 1):
                 # print(f"Weekly Expiry Dates Index : {-i}, Date : {self.weekly_expiry_dates[-i]}")
@@ -361,7 +437,26 @@ class ByBitExpiry(object):
             print(f"Error Occurred while Formatting the Weekly Expiry Dates, Error Code : {e}")
 
     async def _create_daily_expiry_dates(self):
+        """
+        Creates daily expiry dates for the current, next, and day after next days
+        based on the current UTC time.
+        It updates the expiry dictionary with the
+        calculated dates if they are present in the expiry_list.
 
+        The function determines the 'today', 'tomorrow', and 'day after tomorrow'
+        dates based on the current UTC time and whether the current hour is before
+        or after 8 AM.
+
+        Updates:
+            - Sets 'today', 'tomorrow', 'day after tomorrow' properties based on current UTC time.
+            - Checks if the calculated dates exist in 'expiry_list'.
+            - Updates the 'expiry' dictionary with the 'date' and 'exist' status for
+              'current', 'next', and 'next to next' days if the date is found in 'expiry_list'.
+
+        Errors:
+            - Prints an error message if any of the calculated dates are not found
+              in 'expiry_list'.
+        """
         # current_utc_datetime = datetime.now(tz=pytz.utc)
         current_utc_datetime = datetime.datetime.now(datetime.UTC)
         if current_utc_datetime.time().hour >= 8:
@@ -393,6 +488,20 @@ class ByBitExpiry(object):
             print(f"Error : {self.day_after_tomorrow} is not in Expiry List")
 
     async def _create_other_expiry_dates(self):
+        """
+        Populates the `expiry` dictionary with dates from the `expiry_dates` DataFrame.
+        The dates are categorized into weekly, monthly, and quarterly expiry dates.
+
+        Iterates over the `expiry_dates` DataFrame and checks if each date belongs to the `weekly_expiry_dates`,
+        `monthly_expiry_dates`, or `quarterly_expiry_dates` lists.
+        Based on the category, it updates the appropriate fields in the `expiry`
+        dictionary (`weekly`, `monthly`, `quarterly`) with the current, next, and next_to_next expiry dates.
+
+        Raises:
+            Exception:
+            If there is an error during the processing of expiry dates,
+            the exception is caught, and an error message is printed.
+        """
         try:
             for i in range(len(self.expiry_dates)):
                 # Check in the Weekly Expiry List
